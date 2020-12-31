@@ -226,12 +226,11 @@ class action_plugin_ckgedit_edit extends DokuWiki_Action_Plugin {
      $text = str_replace('&notags',  '&amp;amp;notags',$text);
      $text = preg_replace_callback(
     '/(~~NOCACHE~~|~~NOTOC~~|\{\{rss>http(s?):\/\/.*?\}\})/ms',
-     create_function(
-               '$matches',
-               '$matches[0] = preg_replace("#{{rss>http(s?):\/\/#", "{ { rss>$1Feed:",  $matches[0]);
+     function($matches) {
+               $matches[0] = preg_replace("#{{rss>http(s?):\/\/#", "{ { rss>$1Feed:",  $matches[0]);
                $matches[0] = str_replace("~", "~ ",  $matches[0]);
-               return $matches[0];'
-               ),$text);
+               return $matches[0];
+               },$text);
 			   
     if($this->getConf('smiley_hack')) {
         $new_addr = $_SERVER['SERVER_NAME'] . DOKU_BASE;
@@ -299,15 +298,15 @@ class action_plugin_ckgedit_edit extends DokuWiki_Action_Plugin {
 
            $text = preg_replace_callback(
             '/(<nowiki>)(.*?)(<\/nowiki>)/ms',          
-            create_function(
-                '$matches',         
-                 '$needles =  array("[","]", "/",  ".", "*", "_","\'","<",">","%", "{", "}", "\\\","(");
+            function($matches) {             
+                 $needles =  array("[","]", "/",  ".", "*", "_","\'","<",">","%", "{", "}", "\\\\\\","(");
                   $replacements = array("&#91;","&#93;","&#47;", "&#46;", "&#42;", "&#95;", "&#39;", "&#60;","&#62;","&#37;", "&#123;","&#125;", "&#92;","&#40;"); 
                   $matches[2] = str_replace($needles, $replacements, $matches[2]);
-                  return  $matches[1] . $matches[2] . $matches[3];'            
-            ),
+                  return  $matches[1] . $matches[2] . $matches[3];            
+            },
             $text
           );               
+                 
 
            $text = preg_replace_callback(
             '/<(code|file)(.*?)(>)(.*?)(<\/\1>)/ms',
