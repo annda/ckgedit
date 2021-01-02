@@ -240,10 +240,9 @@ class action_plugin_ckgedit_edit extends DokuWiki_Action_Plugin {
 
 /*
     $text = preg_replace_callback('/\[\[\w+>.*?\]\]/ms',
-    create_function(
-        '$matches',
+    function($matches) {
         'return str_replace("/", "__IWIKI_FSLASH__" ,$matches[0]);'
-    ), $text);
+    }, $text);
     */
     
       global $useComplexTables;
@@ -379,16 +378,15 @@ class action_plugin_ckgedit_edit extends DokuWiki_Action_Plugin {
        
 	   if($this->getConf('duplicate_notes')) {
 			$text = preg_replace_callback('/\(\((.*?)\)\)/ms',
-				  create_function(
-				   '$matches',
-				   'static $count = 0;
+				  function($matches) {
+				   static $count = 0;
 				   $count++;
 				   $ins = "FNoteINSert" . $count;
-                   $needles =  array("[","]", "/",  ".", "*", "_","\'","<",">","%", "{", "}", "\\\","(");
+                   $needles =  array("[","]", "/",  ".", "*", "_","\\'","<",">","%", "{", "}",'\\\\\\',"(");
                    $replacements = array("&#91;","&#93;","&#47;", "&#46;", "&#42;", "&#95;", "&#39;", "&#60;","&#62;","&#37;", "&#123;","&#125;", "&#92;","&#40;"); 
                    $matches[1] = str_replace($needles, $replacements, $matches[1]);                    
-              	   return "(($ins" . $matches[1] . "))" ;'
-				 ), $text
+              	   return "(($ins" . $matches[1] . "))" ;
+                  }, $text
 			);			 
 		}
        $text = preg_replace('/^\>/ms',"_QUOT_",$text);  // dw quotes
@@ -487,10 +485,9 @@ class action_plugin_ckgedit_edit extends DokuWiki_Action_Plugin {
       
           $this->xhtml = preg_replace_callback(
             '/~~MULTI_PLUGIN_OPEN~~(.*?)~~MULTI_PLUGIN_CLOSE~~/ms',
-            create_function(
-                '$matches',                          
-                'return str_replace("&lt;", "< ",$matches[0]);'
-            ),
+            function($matches) {                          
+                return str_replace("&lt;", "< ",$matches[0]);
+            },
             $this->xhtml
           );
 		  //insures breaks are retained for single spacing
@@ -1132,13 +1129,13 @@ $text = preg_replace_callback(
              }, $text); 
 
          $text = preg_replace_callback('/(<file.*?>)([^<]+)(<\/file>)/ms',
-             create_function(
-               '$matches',              
-               '$quot =  str_replace("_ckgedit_QUOT_",\'"\',$matches[2]); 
-                $quot = str_replace("\\\\ ","_ckgedit_NL",$quot); 
-                $quot .= "_ckgedit_NL";                
-                return $matches[1] . $quot . $matches[3];' 
-          ), $text); 
+             function($matches) {
+                $quot =  str_replace("_ckgedit_QUOT_",'"',$matches[2]);
+                $quot = str_replace('\\\\ ',"_ckgedit_NL",$quot);
+                $quot .= "_ckgedit_NL";
+                return $matches[1] . $quot . $matches[3];
+
+            }, $text);
 
           $text = preg_replace_callback('/\|([\s\S]+)\|/ms',  // prevents  extra backslash  from hanging on a new line
             function ($matches) {
@@ -1236,19 +1233,17 @@ $text = preg_replace_callback(
         $xhtml = str_replace(array('oiwikio','ciwikic'),array('oIWIKIo','cIWIKIc'),$xhtml);
             $xhtml = preg_replace_callback(
                 '/<?(.*?)oIWIKIo(.*?)cIWIKIc/ms',
-                 create_function(
-                   '$matches',              
-                   ' if(preg_match("/^\w+$/",$matches[2]) && $matches[1] == "/")  return "/". $matches[2];
-                     return $matches[0];'               
-              ),        
+                 function($matches) {              
+                    if(preg_match("/^\w+$/",$matches[2]) && $matches[1] == "/")  return "/". $matches[2];
+                     return $matches[0];               
+              },        
               $xhtml              
             );  
             $xhtml = preg_replace_callback(
                 '/>oIWIKIo(.*?)cIWIKIc(?=<\/a>)/ms',
-                 create_function(
-                   '$matches',              
-                   ' return ">". $matches[1] ;'               
-              ),        
+                 function($matches) {              
+                    return ">". $matches[1] ;               
+            },        
               $xhtml              
             );              
             
@@ -1258,12 +1253,11 @@ $text = preg_replace_callback(
         if($pos !== false) {
            $xhtml = preg_replace_callback(
             '|MULTI_PLUGIN_OPEN.*?MULTI_PLUGIN_CLOSE|ms',
-            create_function(
-                '$matches',                          
-                  '$matches[0] = str_replace("//<//", "< ",$matches[0]);
+            function($matches) {                          
+                  $matches[0] = str_replace("//<//", "< ",$matches[0]);
                   $matches[0] = str_replace(array("oIWIKIo","cIWIKIc"),"",$matches[0]);
-                  return preg_replace("/\n/ms","<br />",$matches[0]);'            
-            ),
+                  return preg_replace("/\n/ms","<br />",$matches[0]);            
+            },
             $xhtml
           );
            
@@ -1305,11 +1299,10 @@ $text = preg_replace_callback(
 	  if(strpos($ua,'chrome') !== false) {
        $xhtml = preg_replace_callback(
              '/(?<=<a )(href=\".*?\")(\s+\w+=\".*?\")(.*?)(?=>)/sm',
-			 create_function(
-			 '$matches',
-			 '$ret_str = " " . trim($matches[3]) . " " . trim($matches[2])  . " " . trim($matches[1]) ;
-			  return $ret_str;'
-			 ),
+			 function($matches) {
+			 $ret_str = " " . trim($matches[3]) . " " . trim($matches[2])  . " " . trim($matches[1]) ;
+			  return $ret_str;
+			 },
 			 $xhtml
 			 );
 		}	 
