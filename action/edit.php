@@ -310,13 +310,11 @@ class action_plugin_ckgedit_edit extends DokuWiki_Action_Plugin {
 
            $text = preg_replace_callback(
             '/<(code|file)(.*?)(>)(.*?)(<\/\1>)/ms',
-            create_function(
-                '$matches',         
-                 ' //file_put_contents("geshi.txt", print_r($matches,true));
+            function($matches) {         
+                  //file_put_contents("geshi.txt", print_r($matches,true));
                  if(preg_match("/(^\s*geshi:\s*(\w+)(\s+\w+\.\w+)*\s*)$/m",$matches[0],$gmatch)){
                       $gmatch[0] = preg_replace("/\s*geshi:\s+/","",$gmatch[0]);                    
-                      $matches[1] .= " " . trim($gmatch[0]);                       
-                      //file_put_contents("gmatch.txt", print_r($gmatch,true));
+                      $matches[1] .= " " . trim($gmatch[0]);
                       $c=1;
                       $matches[4] = str_replace($gmatch[1],"",$matches[4],$c);
                   }
@@ -337,32 +335,40 @@ class action_plugin_ckgedit_edit extends DokuWiki_Action_Plugin {
                   $matches[4] = preg_replace("/<(?!\s)/ms", $open, $matches[4]); 
                   $matches[4] = preg_replace("/(?<!\s)>/ms", $close, $matches[4]);                    
                   }
-                  $matches[4] = str_replace("\"", "__GESHI_QUOT__", $matches[4]);     
-                  $matches[4] = preg_replace("/\\\\\\(\n|\s)/ms","CODE_BLOCK_EOL_MASK$1",$matches[4]);
-                  return "<" . $matches[1] . $matches[2] . $matches[3] . $matches[4] . $matches[5];'            
-            ),
+                  $matches[4] = str_replace("\"", "__GESHI_QUOT__", $matches[4]);
+                  $matches[4] = preg_replace("/" .'"\\\\\\"'."(\n|\s)/ms","CODE_BLOCK_EOL_MASK$1",$matches[4]);                     
+                  return "<" . $matches[1] . $matches[2] . $matches[3] . $matches[4] . $matches[5];            
+            },
             $text
           );
 
+         /* \n_ckgedit_NPBBR_\n: the final \n prevents this from interfering with next in line markups
+            -- in particular tables which require a new line and margin left 
+           this may leave an empty paragraph in the xhtml, which is removed below 
+           The general use of this as per next line is to be tested
+         */
+         /*
+         // this no longer seems to be needed:  probably because of changes in save.php?
+         $text = preg_replace('/<\/(code|file)>(\s*)(?=[^\w])(\s*)/m',"</$1>\n_ckgedit_NPBBR_\n$2",$text );
+         */
+         /* // will not be needed if ckgedit_NPBBR is not inserted in above line 
           $text = preg_replace_callback(
              '/~~START_HTML_BLOCK~~.*?CLOSE_HTML_BLOCK/ms',
-                 create_function(
-                '$matches',
-                '$matches[0] = str_replace("_ckgedit_NPBBR_","",$matches[0]);
-                 return $matches[0];'
-        ),$text);    
-      
+                 function($matches) {
+                $matches[0] = str_replace("_ckgedit_NPBBR_","",$matches[0]);               
+                 return $matches[0];
+                 },$text);    
+      */
           $text = preg_replace_callback(
             '/(\|\s*)(<code>|<file>)(.*?)(<\/code>|<\/file>)\n_ckgedit_NPBBR_(?=.*?\|)/ms',
-            create_function(
-                '$matches',         
-                 '$matches[2] = preg_replace("/<code>/ms", "TPRE_CODE", $matches[2]); 
+            function($matches) {        
+                  $matches[2] = preg_replace("/<code>/ms", "TPRE_CODE", $matches[2]); 
                   $matches[2] = preg_replace("/<file>/ms", "TPRE_FILE", $matches[2]);    
                   $matches[4] = "TPRE_CLOSE";                    
                   $matches[3] = preg_replace("/^\n+/", "TC_NL",$matches[3]);  
                   $matches[3] = preg_replace("/\n/ms", "TC_NL",$matches[3]);                                   
-                  return $matches[1] . $matches[2] .  trim($matches[3]) .   $matches[4];'            
-            ),
+                  return $matches[1] . $matches[2] .  trim($matches[3]) .   $matches[4];            
+            },
             $text
           );
          $text = preg_replace('/TPRE_CLOSE\s+/ms',"TPRE_CLOSE",$text); 
@@ -443,23 +449,21 @@ class action_plugin_ckgedit_edit extends DokuWiki_Action_Plugin {
        if($pos !== false) {
        $this->xhtml = preg_replace_callback(
                 '/(TPRE_CODE|TPRE_FILE)(.*?)(TPRE_CLOSE)/ms',
-                create_function(
-                   '$matches', 
-                   '$matches[1] = preg_replace("/TPRE_CODE/","<pre class=\'code\'>\n", $matches[1]);  
+                function($matches) { 
+                    $matches[1] = preg_replace("/TPRE_CODE/","<pre class=\'code\'>\n", $matches[1]);  
                     $matches[1] = preg_replace("/TPRE_FILE/","<pre class=\'file\'>\n", $matches[1]);  
                     $matches[2] = preg_replace("/TC_NL/ms", "\n", $matches[2]);  
                     $matches[3] = "</pre>";                    
-                    return $matches[1] . $matches[2] . $matches[3];'            
-                ),
+                    return $matches[1] . $matches[2] . $matches[3];            
+                },
                 $this->xhtml
               ); 
 			  
        }
         $this->xhtml = preg_replace_callback(
     '/~~START_HTML_BLOCK~~[\n\s]*(.*?)CLOSE_HTML_BLOCK/ms',
-        create_function(
-            '$matches',
-            '$matches[1] = str_replace("&amp;","&",$matches[1]);
+        function($matches) {
+         $matches[1] = str_replace("&amp;","&",$matches[1]);
          $matches[1] =  html_entity_decode($matches[1],ENT_QUOTES, "UTF-8");
              $matches[1] = preg_replace("/<\/?code.*?>/", "",$matches[1]);
          $matches[1] = preg_replace("/^\s*<\/p>/","",$matches[1]);
@@ -469,16 +473,15 @@ class action_plugin_ckgedit_edit extends DokuWiki_Action_Plugin {
                 unset($tmp[$n]);
              }
           }
-         return "~~START_HTML_BLOCK~~" . implode("\n",$tmp) . "CLOSE_HTML_BLOCK"; '
-        ),$this->xhtml);
+         return "~~START_HTML_BLOCK~~" . implode("\n",$tmp) . "CLOSE_HTML_BLOCK";
+        },$this->xhtml);
         
         $this->xhtml = preg_replace_callback(
             '/(<pre)(.*?)(>)(.*?)(<\/pre>)/ms',
-            create_function(
-                '$matches',                          
-                  '$matches[4] = preg_replace("/(\||\^)[ ]+(\||\^)/ms","$1 &nbsp; $2" , $matches[4]);                    
-                  return  $matches[1] . $matches[2] . $matches[3] . $matches[4] . $matches[5];'            
-            ),
+            function($matches) {                          
+                  $matches[4] = preg_replace("/(\||\^)[ ]+(\||\^)/ms","$1 &nbsp; $2" , $matches[4]);                    
+                  return  $matches[1] . $matches[2] . $matches[3] . $matches[4] . $matches[5];            
+            },
             $this->xhtml
           );
       
@@ -1120,13 +1123,13 @@ $text = preg_replace_callback(
          $text = str_replace('"',"_ckgedit_QUOT_",$text);        
 
          $text = preg_replace_callback('/(<code.*?>)([^<]+)(<\/code>)/ms',
-             create_function(
-               '$matches',              
-               '$quot =  str_replace("_ckgedit_QUOT_",\'"\',$matches[2]); 
-                $quot = str_replace("\\\\ ","_ckgedit_NL",$quot); 
+             function($matches) {              
+                $quot =  str_replace("_ckgedit_QUOT_",'"',$matches[2]);   
+                $repl =  addslashes('\\\\ ');
+                $quot = str_replace($repl,"_ckgedit_NL",$quot); 
                 $quot .= "_ckgedit_NL";                
-                return $matches[1] . $quot . $matches[3];' 
-          ), $text); 
+                return $matches[1] . $quot . $matches[3]; 
+             }, $text); 
 
          $text = preg_replace_callback('/(<file.*?>)([^<]+)(<\/file>)/ms',
              create_function(
@@ -1149,15 +1152,13 @@ $text = preg_replace_callback(
         );          
        
           $text = preg_replace_callback('/(<code>|<file>)([^<]+)(<\/code>|<\/file>)/ms',
-             create_function(
-               '$matches',             
-               '$matches[2] = str_replace("&lt;font","ckgeditFONTOpen",$matches[2]);
+             function($matches) {             
+               $matches[2] = str_replace("&lt;font","ckgeditFONTOpen",$matches[2]);
                $matches[2] = str_replace("font&gt;","ckgeditFONTClose",$matches[2]);
-                return $matches[1] .$matches[2] . $matches[3]; '
-          ), $text); 
+                return $matches[1] .$matches[2] . $matches[3]; 
+             }, $text); 
            $text = str_replace('CODE_BLOCK_EOL_MASK','\\', $text);
-         ///  msg($text);
-            $instructions = p_get_instructions("=== header ==="); // loads DOKU_PLUGINS array --M.T. Dec 22 2009
+           $instructions = p_get_instructions("=== header ==="); // loads DOKU_PLUGINS array --M.T. Dec 22 2009
         
         $instructions = p_get_instructions($text);
         if(is_null($instructions)) return '';
